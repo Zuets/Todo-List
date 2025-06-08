@@ -29,27 +29,33 @@ import androidx.compose.ui.tooling.preview.Preview
 import io.garrit.android.demo.tododemo.ui.theme.TodoDemoTheme
 import java.util.UUID
 
+val taskList = mutableStateListOf<Task>()
+
 data class Task(
     val id: String = UUID.randomUUID().toString(),
-    val title: String,
+    var title: String,
     var isChecked: MutableState<Boolean> = mutableStateOf(false)
 )
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            val list = remember {
-                mutableStateListOf(Task(title = "Hello"), Task(title = "World"))
-            }
 
+        if (taskList.isEmpty()) {
+            taskList.addAll(listOf(
+                Task(title = "Buy groceries"),
+                Task(title = "Call mom"),
+                Task(title = "Finish project")
+            ))
+        }
+
+        setContent {
             TodoDemoTheme {
-                // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainScreen(list = list)
+                    TaskApp()
                 }
             }
         }
@@ -57,67 +63,72 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MainScreen(list: MutableList<Task>, modifier: Modifier = Modifier) {
+fun TaskApp() {
     Column(
-        modifier = modifier
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize()
     ) {
-        TextInputView(list = list)
-        ListView(list = list)
+        TextInputView()
+        TaskListView()
     }
 }
 
 @Composable
-fun TextInputView(list: MutableList<Task>) {
-    var text by rememberSaveable {
-        mutableStateOf("")
-    }
+fun TextInputView() {
+    var title by rememberSaveable { mutableStateOf("") }
 
     Row(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        OutlinedTextField(value = text, onValueChange = {
-            text = it
-        })
-        Button(onClick = { 
-            list.add(Task(title = text))
-            text = ""
-        }) {
+        OutlinedTextField(
+            value = title,
+            onValueChange = { title = it },
+            label = { Text("Title") },
+            modifier = Modifier.weight(1f)
+        )
+        Button(
+            onClick = {
+                if (title.isNotEmpty()) {
+                    taskList.add(Task(title = title))
+                    title = ""
+                }
+            }
+        ) {
             Text("Add")
         }
     }
 }
 
 @Composable
-fun ListView(list: List<Task>) {
+fun TaskListView() {
     LazyColumn {
-        items(list) { task ->
-            RowView(task)
+        items(taskList) { task ->
+            TaskItem(task = task)
         }
     }
 }
 
 @Composable
-fun RowView(task: Task) {
+fun TaskItem(task: Task) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Checkbox(
             checked = task.isChecked.value,
-            onCheckedChange = {
-                task.isChecked.value = !task.isChecked.value
-            }
+            onCheckedChange = { task.isChecked.value = it }
         )
-        Text(task.title)
+        Text(
+            text = task.title,
+            style = MaterialTheme.typography.bodyLarge
+        )
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun RowViewPreview() {
+fun TaskItemPreview() {
     TodoDemoTheme {
-        RowView(Task(title = "Hello"))
+        TaskItem(task = Task(title = "Sample Task"))
     }
 }
