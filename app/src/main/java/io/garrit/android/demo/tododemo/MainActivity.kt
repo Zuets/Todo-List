@@ -3,29 +3,16 @@ package io.garrit.android.demo.tododemo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import io.garrit.android.demo.tododemo.ui.theme.TodoDemoTheme
 import java.util.UUID
 
@@ -34,6 +21,7 @@ val taskList = mutableStateListOf<Task>()
 data class Task(
     val id: String = UUID.randomUUID().toString(),
     var title: String,
+    var content: String = "",
     var isChecked: MutableState<Boolean> = mutableStateOf(false)
 )
 
@@ -43,9 +31,9 @@ class MainActivity : ComponentActivity() {
 
         if (taskList.isEmpty()) {
             taskList.addAll(listOf(
-                Task(title = "Buy groceries"),
-                Task(title = "Call mom"),
-                Task(title = "Finish project")
+                Task(title = "Buy groceries", content = "Milk, eggs, bread"),
+                Task(title = "Call mom", content = "Discuss weekend plans"),
+                Task(title = "Finish project", content = "Deadline is Friday")
             ))
         }
 
@@ -65,9 +53,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun TaskApp() {
     Column(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
     ) {
         TextInputView()
+        Spacer(modifier = Modifier.height(16.dp))
         TaskListView()
     }
 }
@@ -75,53 +66,96 @@ fun TaskApp() {
 @Composable
 fun TextInputView() {
     var title by rememberSaveable { mutableStateOf("") }
+    var content by rememberSaveable { mutableStateOf("") }
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+    Column(
+        modifier = Modifier.fillMaxWidth()
     ) {
         OutlinedTextField(
             value = title,
             onValueChange = { title = it },
-            label = { Text("Title") },
-            modifier = Modifier.weight(1f)
+            label = { Text("Task title") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
         )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = content,
+            onValueChange = { content = it },
+            label = { Text("Task description") },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 2
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         Button(
             onClick = {
                 if (title.isNotEmpty()) {
-                    taskList.add(Task(title = title))
+                    taskList.add(Task(title = title, content = content))
                     title = ""
+                    content = ""
                 }
-            }
+            },
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Add")
+            Text("Add Task")
         }
     }
 }
 
 @Composable
 fun TaskListView() {
-    LazyColumn {
+    LazyColumn(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         items(taskList) { task ->
             TaskItem(task = task)
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TaskItem(task: Task) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+fun TaskItem(
+    task: Task,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
     ) {
-        Checkbox(
-            checked = task.isChecked.value,
-            onCheckedChange = { task.isChecked.value = it }
-        )
-        Text(
-            text = task.title,
-            style = MaterialTheme.typography.bodyLarge
-        )
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Checkbox(
+                    checked = task.isChecked.value,
+                    onCheckedChange = { task.isChecked.value = it },
+                    modifier = Modifier.padding(end = 16.dp)
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = task.title,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    if (task.content.isNotEmpty()) {
+                        Text(
+                            text = task.content,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -129,6 +163,8 @@ fun TaskItem(task: Task) {
 @Composable
 fun TaskItemPreview() {
     TodoDemoTheme {
-        TaskItem(task = Task(title = "Sample Task"))
+        TaskItem(
+            task = Task(title = "Sample Task", content = "This is a sample task content")
+        )
     }
 }
