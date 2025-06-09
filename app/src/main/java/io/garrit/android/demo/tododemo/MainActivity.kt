@@ -11,10 +11,11 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.garrit.android.demo.tododemo.ui.theme.TodoDemoTheme
-import java.util.UUID
+import java.util.*
 
 val taskList = mutableStateListOf<Task>()
 
@@ -52,6 +53,27 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun TaskApp() {
+    var currentScreen by remember { mutableStateOf("list") }
+    var selectedTask by remember { mutableStateOf<Task?>(null) }
+
+    when (currentScreen) {
+        "list" -> TaskListScreen(
+            onTaskClicked = { task ->
+                selectedTask = task
+                currentScreen = "detail"
+            }
+        )
+        "detail" -> DetailScreen(
+            task = selectedTask!!,
+            onBack = { currentScreen = "list" }
+        )
+    }
+}
+
+@Composable
+fun TaskListScreen(
+    onTaskClicked: (Task) -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -59,7 +81,7 @@ fun TaskApp() {
     ) {
         TextInputView()
         Spacer(modifier = Modifier.height(16.dp))
-        TaskListView()
+        TaskListView(onTaskClicked = onTaskClicked)
     }
 }
 
@@ -107,13 +129,16 @@ fun TextInputView() {
 }
 
 @Composable
-fun TaskListView() {
+fun TaskListView(onTaskClicked: (Task) -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(taskList) { task ->
-            TaskItem(task = task)
+            TaskItem(
+                task = task,
+                onTaskClicked = { onTaskClicked(task) }
+            )
         }
     }
 }
@@ -122,9 +147,11 @@ fun TaskListView() {
 @Composable
 fun TaskItem(
     task: Task,
+    onTaskClicked: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
+        onClick = onTaskClicked,
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
@@ -159,12 +186,61 @@ fun TaskItem(
     }
 }
 
+@Composable
+fun DetailScreen(
+    task: Task,
+    onBack: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Checkbox(
+                checked = task.isChecked.value,
+                onCheckedChange = { task.isChecked.value = it },
+                modifier = Modifier.padding(end = 16.dp)
+            )
+            Text(
+                text = task.title,
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (task.content.isNotEmpty()) {
+            Text(
+                text = task.content,
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Justify,
+                modifier = Modifier.padding(start = 48.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Button(
+            onClick = onBack,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Back")
+        }
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun TaskItemPreview() {
     TodoDemoTheme {
         TaskItem(
-            task = Task(title = "Sample Task", content = "This is a sample task content")
+            task = Task(title = "Sample Task", content = "This is a sample task content"),
+            onTaskClicked = {}
         )
     }
 }
