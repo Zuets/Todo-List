@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -61,84 +60,63 @@ fun TaskApp() {
             onTaskClicked = { task ->
                 selectedTask = task
                 currentScreen = "detail"
+            },
+            onCreateNew = {
+                selectedTask = null
+                currentScreen = "edit"
             }
         )
         "detail" -> DetailScreen(
             task = selectedTask!!,
-            onBack = { currentScreen = "list" }
+            onBack = { currentScreen = "list" },
+            onEdit = { currentScreen = "edit" }
+        )
+        "edit" -> TaskEditScreen(
+            task = selectedTask,
+            onSave = { task ->
+                if (selectedTask != null) {
+                    val index = taskList.indexOfFirst { it.id == selectedTask!!.id }
+                    if (index != -1) taskList[index] = task
+                } else {
+                    taskList.add(task)
+                }
+                currentScreen = "list"
+            },
+            onCancel = { currentScreen = "list" }
         )
     }
 }
 
 @Composable
 fun TaskListScreen(
-    onTaskClicked: (Task) -> Unit
+    onTaskClicked: (Task) -> Unit,
+    onCreateNew: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        TextInputView()
-        Spacer(modifier = Modifier.height(16.dp))
-        TaskListView(onTaskClicked = onTaskClicked)
-    }
-}
-
-@Composable
-fun TextInputView() {
-    var title by rememberSaveable { mutableStateOf("") }
-    var content by rememberSaveable { mutableStateOf("") }
-
-    Column(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        OutlinedTextField(
-            value = title,
-            onValueChange = { title = it },
-            label = { Text("Task title") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = content,
-            onValueChange = { content = it },
-            label = { Text("Task description") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 2
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
         Button(
-            onClick = {
-                if (title.isNotEmpty()) {
-                    taskList.add(Task(title = title, content = content))
-                    title = ""
-                    content = ""
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
+            onClick = onCreateNew,
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(vertical = 16.dp)
         ) {
-            Text("Add Task")
+            Text("Create New Task")
         }
-    }
-}
 
-@Composable
-fun TaskListView(onTaskClicked: (Task) -> Unit) {
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(taskList) { task ->
-            TaskItem(
-                task = task,
-                onTaskClicked = { onTaskClicked(task) }
-            )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(taskList) { task ->
+                TaskItem(
+                    task = task,
+                    onTaskClicked = { onTaskClicked(task) }
+                )
+            }
         }
     }
 }
@@ -189,7 +167,8 @@ fun TaskItem(
 @Composable
 fun DetailScreen(
     task: Task,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onEdit: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -225,22 +204,120 @@ fun DetailScreen(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        Button(
-            onClick = onBack,
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text("Back")
+            Button(
+                onClick = onEdit,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Edit")
+            }
+
+            Button(
+                onClick = onBack,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Back")
+            }
         }
     }
 }
 
-@Preview(showBackground = true)
 @Composable
-fun TaskItemPreview() {
-    TodoDemoTheme {
-        TaskItem(
-            task = Task(title = "Sample Task", content = "This is a sample task content"),
-            onTaskClicked = {}
+fun TaskEditScreen(
+    task: Task?,
+    onSave: (Task) -> Unit,
+    onCancel: () -> Unit
+) {
+    var title by remember { mutableStateOf(task?.title ?: "") }
+    var content by remember { mutableStateOf(task?.content ?: "") }
+
+    val titleError = when {
+        title.isEmpty() -> "Title cannot be empty"
+        title.length < 3 -> "Title must be at least 3 characters"
+        title.length > 50 -> "Title cant be more than 50 characters"
+        else -> null
+    }
+
+    val contentError = when {
+        content.length > 120 -> "Description cant be longer than 120 characters"
+        else -> null
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        OutlinedTextField(
+            value = title,
+            onValueChange = { title = it },
+            label = { Text("Title") },
+            isError = titleError != null,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
         )
+        if (titleError != null) {
+            Text(
+                text = titleError,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = content,
+            onValueChange = { content = it },
+            label = { Text("Task description") },
+            isError = contentError != null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            minLines = 5
+        )
+        if (contentError != null) {
+            Text(
+                text = contentError,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Button(
+                onClick = onCancel,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Cancel")
+            }
+
+            Button(
+                onClick = {
+                    val updatedTask = task?.copy(
+                        title = title,
+                        content = content
+                    ) ?: Task(
+                        title = title,
+                        content = content
+                    )
+                    onSave(updatedTask)
+                },
+                modifier = Modifier.weight(1f),
+                enabled = titleError == null && contentError == null
+            ) {
+                Text(if (task != null) "Update" else "Create")
+            }
+        }
     }
 }
