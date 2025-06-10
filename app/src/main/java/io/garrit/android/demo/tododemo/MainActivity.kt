@@ -15,21 +15,21 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.garrit.android.demo.tododemo.ui.theme.TodoDemoTheme
 import java.util.*
-
-val taskList = mutableStateListOf<Task>()
+//global
+val taskList = mutableStateListOf<Task>() //changable
 
 data class Task(
-    val id: String = UUID.randomUUID().toString(),
+    val id: String = UUID.randomUUID().toString(), //unique id
     var title: String,
     var content: String = "",
-    var isChecked: MutableState<Boolean> = mutableStateOf(false)
+    var isChecked: MutableState<Boolean> = mutableStateOf(false) //changes ui when clicked
 )
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        if (taskList.isEmpty()) {
+        if (taskList.isEmpty()) { //runs once when app is new
             taskList.addAll(listOf(
                 Task(title = "Buy groceries", content = "Milk, eggs, bread"),
                 Task(title = "Call mom", content = "Discuss weekend plans"),
@@ -38,34 +38,34 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            TodoDemoTheme {
+            TodoDemoTheme { //sets to all childs
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    TaskApp()
+                    TaskApp() //root navigation
                 }
             }
         }
     }
 }
-
+//app navigation
 @Composable
 fun TaskApp() {
-    var currentScreen by remember { mutableStateOf("list") }
-    var selectedTask by remember { mutableStateOf<Task?>(null) }
-
-    when (currentScreen) {
+    var currentScreen by remember { mutableStateOf("list") } //which screen to show
+    var selectedTask by remember { mutableStateOf<Task?>(null) } //holds selected task
+    //navigation logic
+    when (currentScreen) { //switches between the screens for the right UI
         "list" -> TaskListScreen(
-            onTaskClicked = { task ->
+            onTaskClicked = { task -> //opens the task
                 selectedTask = task
-                currentScreen = "detail"
+                currentScreen = "detail" //navigate to detail screen
             },
             onCreateNew = {
                 selectedTask = null
-                currentScreen = "edit"
+                currentScreen = "edit" //navigate to edit screen
             }
-        )
+        )  //task detail screen
         "detail" -> DetailScreen(
             task = selectedTask!!,
             onBack = { currentScreen = "list" },
@@ -75,23 +75,23 @@ fun TaskApp() {
                 currentScreen = "list"
             }
         )
-        "edit" -> TaskEditScreen(
+        "edit" -> TaskEditScreen( //task edit screen
             task = selectedTask,
-            onSave = { task ->
+            onSave = { task -> //update + save logic
                 if (selectedTask != null) {
                     val index = taskList.indexOfFirst { it.id == selectedTask!!.id }
                     if (index != -1) taskList[index] = task
-                } else {
+                } else { //add a task and adds it to end of list
                     taskList.add(task)
                 }
-                currentScreen = "list"
+                currentScreen = "list" //back to main menu / list showcase
             },
-            onCancel = { currentScreen = "list" }
+            onCancel = { currentScreen = "list" } //cancel the edit and go back
         )
     }
 }
 
-@Composable
+@Composable //"main" screen
 fun TaskListScreen(
     onTaskClicked: (Task) -> Unit,
     onCreateNew: () -> Unit
@@ -124,7 +124,7 @@ fun TaskListScreen(
         }
     }
 }
-
+//each task item in list
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskItem(
@@ -132,7 +132,7 @@ fun TaskItem(
     onTaskClicked: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    Card( //clickable 3api
         onClick = onTaskClicked,
         modifier = modifier
             .fillMaxWidth()
@@ -167,7 +167,7 @@ fun TaskItem(
         }
     }
 }
-
+//specific details for single task + extra button
 @Composable
 fun DetailScreen(
     task: Task,
@@ -240,16 +240,16 @@ fun DetailScreen(
         }
     }
 }
-
+//Task edit/create screen as layout is the same
 @Composable
 fun TaskEditScreen(
-    task: Task?,
+    task: Task?,  //null = creating task, non-null = editing task
     onSave: (Task) -> Unit,
     onCancel: () -> Unit
 ) {
     var title by remember { mutableStateOf(task?.title ?: "") }
     var content by remember { mutableStateOf(task?.content ?: "") }
-
+        //validation logic
     val titleError = when {
         title.isEmpty() -> "Title cannot be empty"
         title.length < 3 -> "Title must be at least 3 characters"
@@ -272,9 +272,9 @@ fun TaskEditScreen(
             onValueChange = { title = it },
             label = { Text("Title") },
             isError = titleError != null,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(), //cover whole screen
             singleLine = true
-        )
+        ) //shows error if it occur
         if (titleError != null) {
             Text(
                 text = titleError,
@@ -320,7 +320,7 @@ fun TaskEditScreen(
 
             Button(
                 onClick = {
-                    val updatedTask = task?.copy(
+                    val updatedTask = task?.copy( //creates a new task wwith same id and other specific so we don't change the original task while editing
                         title = title,
                         content = content
                     ) ?: Task(
@@ -330,9 +330,9 @@ fun TaskEditScreen(
                     onSave(updatedTask)
                 },
                 modifier = Modifier.weight(1f),
-                enabled = titleError == null && contentError == null
+                enabled = titleError == null && contentError == null //only clickable i.e enabled if no content errors from "title & content Error"
             ) {
-                Text(if (task != null) "Update" else "Create")
+                Text(if (task != null) "Update" else "Create") //update if edit, "create" if new. other words its dynamic
             }
         }
     }
