@@ -69,7 +69,11 @@ fun TaskApp() {
         "detail" -> DetailScreen(
             task = selectedTask!!,
             onBack = { currentScreen = "list" },
-            onEdit = { currentScreen = "edit" }
+            onEdit = { currentScreen = "edit" },
+            onDelete = {
+                taskList.remove(selectedTask)
+                currentScreen = "list"
+            }
         )
         "edit" -> TaskEditScreen(
             task = selectedTask,
@@ -168,7 +172,8 @@ fun TaskItem(
 fun DetailScreen(
     task: Task,
     onBack: () -> Unit,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -213,6 +218,17 @@ fun DetailScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Edit")
+            }
+
+            Button(
+                onClick = onDelete,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                )
+            ) {
+                Text("Delete")
             }
 
             Button(
